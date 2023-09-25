@@ -11,4 +11,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print message to console
-        run: echo "Current date and time: $(date)"
+        run: |
+          echo "Current date and time: $(date)"
