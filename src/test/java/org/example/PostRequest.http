@@ -1,0 +1,3 @@
+POST http://localhost:4567/api/articles
+
+{"title":"Title","content":"content text","tags":["tagA","tabB"],"comments":[{"id":{"value":11},"articleId":{"value":1},"text":"hehe"}]}
