@@ -13,11 +13,15 @@ import org.example.service.exceptions.CreateException;
 import org.example.service.exceptions.DeleteException;
 import org.example.service.exceptions.FindException;
 import org.example.service.exceptions.UpdateException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 import spark.Service;
 
 public class ArticleController implements Controller {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ArticleController.class);
 
     private final Service service;
     private final ArticleService articleService;
@@ -43,6 +47,7 @@ public class ArticleController implements Controller {
     public void getAllArticles() {
         service.get("api/articles", (Request request, Response response) -> {
             response.type("application/json");
+            LOG.debug("All articles received");
             return objectMapper.writeValueAsString(new AllArticlesGetResponse(articleService.getAll()));
         });
     }
@@ -52,8 +57,10 @@ public class ArticleController implements Controller {
             response.type("application/json");
             ArticleId articleId = new ArticleId(Long.parseLong(request.params("articleId")));
             try {
+                LOG.debug("Article with id={} received", articleId);
                 return new SingleArticleGetResponse(articleService.findById(articleId));
             } catch (FindException e) {
+                LOG.warn("Couldn't find article", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }
@@ -68,9 +75,11 @@ public class ArticleController implements Controller {
             CommentAddRequest addCommentRequest = objectMapper.readValue(body, CommentAddRequest.class);
             try {
                 CommentId commentId = articleService.addComment(articleId, addCommentRequest.text());
+                LOG.debug("Comment added");
                 response.status(201);
                 return objectMapper.writeValueAsString(new CommentAddResponse(commentId));
             } catch (UpdateException e) {
+                LOG.warn("Couldn't add comment", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }
@@ -84,9 +93,11 @@ public class ArticleController implements Controller {
             ArticleCreateRequest articleCreateRequest = objectMapper.readValue(body, ArticleCreateRequest.class);
             try {
                 ArticleId articleId = articleService.create(articleCreateRequest.title(), articleCreateRequest.content(), articleCreateRequest.tags(), articleCreateRequest.comments());
+                LOG.debug("Article with id={} created", articleId);
                 response.status(201);
                 return objectMapper.writeValueAsString(new ArticleCreateResponse(articleId));
             } catch (CreateException e) {
+                LOG.warn("Couldn't create article", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }
@@ -100,10 +111,12 @@ public class ArticleController implements Controller {
             ArticleId articleId = new ArticleId(Long.parseLong(request.params("articleId")));
             ContentUpdateRequest contentUpdateRequest = objectMapper.readValue(body, ContentUpdateRequest.class);
             try {
-                response.status(201);
                 articleService.updateContent(articleId, contentUpdateRequest.content());
+                LOG.debug("Updated content of article with id={}", articleId);
+                response.status(201);
                 return objectMapper.writeValueAsString(new ContentUpdateResponse());
             } catch (UpdateException e) {
+                LOG.warn("Failed to update article content", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }
@@ -116,9 +129,11 @@ public class ArticleController implements Controller {
             ArticleId articleId = new ArticleId(Long.parseLong(request.params("articleId")));
             try {
                 articleService.delete(articleId);
+                LOG.debug("Article deleted");
                 response.status(204);
                 return objectMapper.writeValueAsString(new ArticleDeleteResponse());
             } catch (DeleteException e) {
+                LOG.warn("Couldn't delete article", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }
@@ -133,9 +148,11 @@ public class ArticleController implements Controller {
             CommentDeleteRequest commentDeleteRequest = objectMapper.readValue(body, CommentDeleteRequest.class);
             try {
                 articleService.deleteComment(articleId, commentDeleteRequest.commentId());
+                LOG.debug("Comment deleted");
                 response.status(204);
                 return objectMapper.writeValueAsString(new CommentDeleteResponse());
             } catch (DeleteException e) {
+                LOG.warn("Couldn't create comment", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }
