@@ -47,6 +47,7 @@ public class ArticleController implements Controller {
     public void getAllArticles() {
         service.get("api/articles", (Request request, Response response) -> {
             response.type("application/json");
+            response.status(201);
             LOG.debug("All articles received");
             return objectMapper.writeValueAsString(new AllArticlesGetResponse(articleService.getAll()));
         });
@@ -58,7 +59,8 @@ public class ArticleController implements Controller {
             ArticleId articleId = new ArticleId(Long.parseLong(request.params("articleId")));
             try {
                 LOG.debug("Article with id={} received", articleId);
-                return new SingleArticleGetResponse(articleService.findById(articleId));
+                response.status(201);
+                return objectMapper.writeValueAsString(new SingleArticleGetResponse(articleService.findById(articleId)));
             } catch (FindException e) {
                 LOG.warn("Couldn't find article", e);
                 response.status(400);
@@ -92,7 +94,7 @@ public class ArticleController implements Controller {
             String body = request.body();
             ArticleCreateRequest articleCreateRequest = objectMapper.readValue(body, ArticleCreateRequest.class);
             try {
-                ArticleId articleId = articleService.create(articleCreateRequest.title(), articleCreateRequest.content(), articleCreateRequest.tags(), articleCreateRequest.comments());
+                ArticleId articleId = articleService.create(articleCreateRequest.title(), articleCreateRequest.content(), articleCreateRequest.tags());
                 LOG.debug("Article with id={} created", articleId);
                 response.status(201);
                 return objectMapper.writeValueAsString(new ArticleCreateResponse(articleId));

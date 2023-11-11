@@ -51,7 +51,7 @@ public class Article {
     }
 
     public Article deleteComment(CommentId commentId) {
-        List<Comment> updatedComments = comments.stream().filter(streamComment -> streamComment.getId() != commentId).toList();
+        List<Comment> updatedComments = comments.stream().filter(streamComment -> !streamComment.getId().equals(commentId)).toList();
         return new Article(this.id, this.title, this.content, this.tags, updatedComments);
     }
 

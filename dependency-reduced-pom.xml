@@ -59,7 +59,7 @@
                     <limit>
                       <counter>LINE</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.55</minimum>
+                      <minimum>0.60</minimum>
                     </limit>
                   </limits>
                 </rule>
@@ -78,6 +78,13 @@
             </configuration>
           </execution>
         </executions>
+        <configuration>
+          <excludes>
+            <exclude>org/example/Main.class</exclude>
+            <exclude>org/example/entity/**</exclude>
+            <exclude>**/exceptions/**</exclude>
+          </excludes>
+        </configuration>
       </plugin>
     </plugins>
   </build>

@@ -22,13 +22,13 @@ public class ArticleService {
         this.articleRepository = articleRepository;
     }
 
-    public ArticleId create(String title, String content, Set<String> tags, List<Comment> comments) {
+    public ArticleId create(String title, String content, Set<String> tags) {
         ArticleId articleId = articleRepository.generateId();
-        Article article = new Article(articleId, title, content, tags, comments);
+        Article article = new Article(articleId, title, content, tags, List.of());
         try {
             articleRepository.create(article);
         } catch (DuplicateIdException e) {
-            throw new CreateException("Couldn't delete article", e);
+            throw new CreateException("Couldn't create article", e);
         }
         return articleId;
     }
