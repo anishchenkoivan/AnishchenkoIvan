@@ -53,6 +53,7 @@ public class PostgresCommentRepository implements CommentRepository {
             if (amountOfComments > 3) {
                 handle.createUpdate(
                         "UPDATE articles SET update trending = true WHERE article_id = :articleId")
+                        .bind("articleId", comment.getArticleId())
                         .execute();
             }
         });
@@ -60,5 +61,38 @@ public class PostgresCommentRepository implements CommentRepository {
 
     @Override
     public void delete(CommentId commentId) {
+        jdbi.useTransaction((Handle handle) -> {
+            int selectedRaws = handle.createUpdate(
+                            "SELECT * FROM articles WHERE article_id = :articleId FOR UPDATE")
+                    .bind("articleId", commentId.getValue())
+                    .execute();
+
+            if (selectedRaws == 0) {
+                throw new ItemNotFoundException("Could not find comment with id=" + commentId.getValue());
+            }
+
+            long articleId = handle.createQuery("SELECT article_id FROM comments WHERE comment_id = :commentId")
+                    .bind("commentId", commentId.getValue())
+                    .mapTo(long.class)
+                    .one();
+
+            handle.createUpdate(
+                            "DELETE FROM comments WHERE comment_id = :commentId")
+                    .bind("commentId", commentId.getValue())
+                    .execute();
+
+            long amountOfComments = handle.createQuery(
+                            "SELECT count(*) FROM comments WHERE article_id = :articleId")
+                    .bind("articleId", articleId)
+                    .mapTo(long.class)
+                    .one();
+
+            if (amountOfComments <= 3) {
+                handle.createUpdate(
+                                "UPDATE articles SET update trending = false WHERE article_id = :articleId")
+                        .bind("articleId", articleId)
+                        .execute();
+            }
+        });
     }
 }

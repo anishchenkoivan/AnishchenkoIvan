@@ -79,6 +79,11 @@ public class PostgresArticleRepository implements ArticleRepository{
             }
 
             handle.createUpdate(
+                    "DELETE FROM comments WHERE article_id = :articleId")
+                    .bind("articleId", id.getValue())
+                    .execute();
+
+            handle.createUpdate(
                     "DELETE FROM articles WHERE article_id = :articleId")
                     .bind("articleId", id.getValue())
                     .execute();
