@@ -14,22 +14,21 @@ public class Article {
     private final String title;
     private final String content;
     private final Set<String> tags;
-    private final List<Comment> comments;
-    private final AtomicLong nextCommentId = new AtomicLong(0);
+    private final boolean trending;
 
-    public Article(ArticleId id, String title, String content, Set<String> tags, List<Comment> comments) {
+    public Article(ArticleId id, String title, String content, Set<String> tags, boolean trending) {
         this.id = id;
         this.title = title;
         this.content = content;
         this.tags = tags;
-        this.comments = comments;
+        this.trending = trending;
     }
 
     public ArticleId getId() { return id; }
     public String getTitle() { return title; }
     public String getContent() { return content; }
     public Set<String> getTags() { return tags; }
-    public List<Comment> getComments() {return comments; }
+    public boolean getTrending() { return trending; }
 
     @Override
     public boolean equals(Object o) {
@@ -44,18 +43,7 @@ public class Article {
         return Objects.hash(id);
     }
 
-    public Article addComment(String commentText) {
-        Comment comment = new Comment(new CommentId(nextCommentId.incrementAndGet()), this.id, commentText);
-        List<Comment> updatedComments = Stream.concat(comments.stream(), Stream.of(comment)).toList();
-        return new Article(this.id, this.title, this.content, this.tags, updatedComments);
-    }
-
-    public Article deleteComment(CommentId commentId) {
-        List<Comment> updatedComments = comments.stream().filter(streamComment -> !streamComment.getId().equals(commentId)).toList();
-        return new Article(this.id, this.title, this.content, this.tags, updatedComments);
-    }
-
     public Article withContent(String content) {
-        return new Article(this.id, this.title, content, this.tags, this.comments);
+        return new Article(this.id, this.title, content, this.tags, this.trending);
     }
 }

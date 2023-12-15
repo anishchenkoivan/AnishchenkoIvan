@@ -11,6 +11,7 @@ import org.example.service.exceptions.CreateException;
 import org.example.service.exceptions.DeleteException;
 import org.example.service.exceptions.FindException;
 import org.example.service.exceptions.UpdateException;
+import org.jdbi.v3.core.transaction.TransactionException;
 
 import java.util.List;
 import java.util.Set;
@@ -24,10 +25,10 @@ public class ArticleService {
 
     public ArticleId create(String title, String content, Set<String> tags) {
         ArticleId articleId = articleRepository.generateId();
-        Article article = new Article(articleId, title, content, tags, List.of());
+        Article article = new Article(articleId, title, content, tags, false);
         try {
             articleRepository.create(article);
-        } catch (DuplicateIdException e) {
+        } catch (TransactionException e) {
             throw new CreateException("Couldn't create article", e);
         }
         return articleId;
@@ -42,23 +43,6 @@ public class ArticleService {
             return articleRepository.findById(id);
         } catch (ItemNotFoundException e) {
             throw new FindException("Couldn't find article with id=" + id, e);
-        }
-    }
-
-    public synchronized CommentId addComment(ArticleId articleId, String commentText) {
-        Article article;
-        try {
-            article = articleRepository.findById(articleId);
-        } catch (ItemNotFoundException e) {
-            throw new UpdateException("Couldn't find article with id=" + articleId, e);
-        }
-
-        Article updatedArticle = article.addComment(commentText);
-        try {
-            articleRepository.update(updatedArticle);
-            return updatedArticle.getComments().get(updatedArticle.getComments().size() - 1).getId();
-        } catch (ItemNotFoundException e) {
-            throw new UpdateException("couldn't find article with id=" + articleId, e);
         }
     }
 
@@ -85,23 +69,23 @@ public class ArticleService {
         }
     }
 
-    public synchronized void deleteComment(ArticleId articleId, CommentId commentId) {
-        Article article;
-        try {
-            article = articleRepository.findById(articleId);
-        } catch (ItemNotFoundException e) {
-            throw new DeleteException("Couldn't find article with id=" + articleId, e);
-        }
-
-        Article updatedArticle = article.deleteComment(commentId);
-        if (updatedArticle.getComments().size() == article.getComments().size()) {
-            throw new DeleteException("Couldn't find comment with id=" + commentId);
-        }
-
-        try {
-            articleRepository.update(updatedArticle);
-        } catch (ItemNotFoundException e) {
-            throw new DeleteException("Couldn't find article with id=" + articleId, e);
-        }
-    }
+//    public synchronized void deleteComment(ArticleId articleId, CommentId commentId) {
+//        Article article;
+//        try {
+//            article = articleRepository.findById(articleId);
+//        } catch (ItemNotFoundException e) {
+//            throw new DeleteException("Couldn't find article with id=" + articleId, e);
+//        }
+//
+//        Article updatedArticle = article.deleteComment(commentId);
+//        if (updatedArticle.getComments().size() == article.getComments().size()) {
+//            throw new DeleteException("Couldn't find comment with id=" + commentId);
+//        }
+//
+//        try {
+//            articleRepository.update(updatedArticle);
+//        } catch (ItemNotFoundException e) {
+//            throw new DeleteException("Couldn't find article with id=" + articleId, e);
+//        }
+//    }
 }

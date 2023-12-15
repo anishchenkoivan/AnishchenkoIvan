@@ -28,7 +28,7 @@ public class ArticleFreemarkerController implements Controller {
         service.get("/", (Request request, Response response) -> {
             response.type("text/html; charset=utf-8");
             List<Article> articles = articleService.getAll();
-            List<Map<String, String>> articleMapList = articles.stream().map(article -> Map.of("title", article.getTitle(), "comments", String.valueOf(article.getComments().size()))).toList();
+            List<Map<String, String>> articleMapList = articles.stream().map(article -> Map.of("title", article.getTitle())).toList();
 
             Map<String, Object> model = new HashMap<>();
             model.put("articles", articleMapList);

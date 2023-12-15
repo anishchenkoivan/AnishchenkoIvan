@@ -37,11 +37,9 @@ public class ArticleController implements Controller {
     public void initializeEndpoints() {
         getAllArticles();
         getSingleArticle();
-        addComment();
         createArticle();
         updateContent();
         deleteArticle();
-        deleteComment();
     }
 
     public void getAllArticles() {
@@ -63,25 +61,6 @@ public class ArticleController implements Controller {
                 return objectMapper.writeValueAsString(new SingleArticleGetResponse(articleService.findById(articleId)));
             } catch (FindException e) {
                 LOG.warn("Couldn't find article", e);
-                response.status(400);
-                return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
-            }
-        });
-    }
-
-    public void addComment() {
-        service.patch("api/articles/add-comment/:articleId", (Request request, Response response) -> {
-            response.type("application/json");
-            String body = request.body();
-            ArticleId articleId = new ArticleId(Long.parseLong(request.params("articleId")));
-            CommentAddRequest addCommentRequest = objectMapper.readValue(body, CommentAddRequest.class);
-            try {
-                CommentId commentId = articleService.addComment(articleId, addCommentRequest.text());
-                LOG.debug("Comment added");
-                response.status(201);
-                return objectMapper.writeValueAsString(new CommentAddResponse(commentId));
-            } catch (UpdateException e) {
-                LOG.warn("Couldn't add comment", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }
@@ -136,25 +115,6 @@ public class ArticleController implements Controller {
                 return objectMapper.writeValueAsString(new ArticleDeleteResponse());
             } catch (DeleteException e) {
                 LOG.warn("Couldn't delete article", e);
-                response.status(400);
-                return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
-            }
-        });
-    }
-
-    public void deleteComment() {
-        service.delete("/api/articles/delete-comment/:articleId", (Request request, Response response) -> {
-            response.type("application/json");
-            ArticleId articleId = new ArticleId(Long.parseLong(request.params("articleId")));
-            String body = request.body();
-            CommentDeleteRequest commentDeleteRequest = objectMapper.readValue(body, CommentDeleteRequest.class);
-            try {
-                articleService.deleteComment(articleId, commentDeleteRequest.commentId());
-                LOG.debug("Comment deleted");
-                response.status(204);
-                return objectMapper.writeValueAsString(new CommentDeleteResponse());
-            } catch (DeleteException e) {
-                LOG.warn("Couldn't create comment", e);
                 response.status(400);
                 return objectMapper.writeValueAsString(new ErrorResponse(e.getMessage()));
             }

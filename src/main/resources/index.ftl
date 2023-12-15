@@ -17,7 +17,6 @@
     <#list articles as article>
         <tr>
             <td>${article.title}</td>
-            <td>${article.comments}</td>
         </tr>
     </#list>
 </table>
