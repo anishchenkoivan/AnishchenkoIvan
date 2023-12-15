@@ -30,7 +30,7 @@ public class PostgresCommentRepository implements CommentRepository {
         jdbi.useTransaction((Handle handle) -> {
             int selectedRaws = handle.createUpdate(
                     "SELECT * FROM articles WHERE article_id = :articleId FOR UPDATE")
-                    .bind("articleId", comment.getArticleId())
+                    .bind("articleId", comment.getArticleId().getValue())
                     .execute();
 
             if (selectedRaws == 0) {
@@ -39,21 +39,21 @@ public class PostgresCommentRepository implements CommentRepository {
 
             handle.createUpdate(
                     "INSERT INTO comments (comment_id, article_id, text) VALUES (:commentId, :articleId, :text)")
-                    .bind("commentId", comment.getId())
-                    .bind("articleId", comment.getArticleId())
+                    .bind("commentId", comment.getId().getValue())
+                    .bind("articleId", comment.getArticleId().getValue())
                     .bind("text", comment.getText())
                     .execute();
 
             long amountOfComments = handle.createQuery(
                     "SELECT count(*) FROM comments WHERE article_id = :articleId")
-                    .bind("articleId", comment.getArticleId())
+                    .bind("articleId", comment.getArticleId().getValue())
                     .mapTo(long.class)
                     .one();
 
             if (amountOfComments > 3) {
                 handle.createUpdate(
-                        "UPDATE articles SET update trending = true WHERE article_id = :articleId")
-                        .bind("articleId", comment.getArticleId())
+                        "UPDATE articles SET trending = true WHERE article_id = :articleId")
+                        .bind("articleId", comment.getArticleId().getValue())
                         .execute();
             }
         });
@@ -89,7 +89,7 @@ public class PostgresCommentRepository implements CommentRepository {
 
             if (amountOfComments <= 3) {
                 handle.createUpdate(
-                                "UPDATE articles SET update trending = false WHERE article_id = :articleId")
+                                "UPDATE articles SET trending = false WHERE article_id = :articleId")
                         .bind("articleId", articleId)
                         .execute();
             }

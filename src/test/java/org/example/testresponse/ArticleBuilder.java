@@ -13,6 +13,6 @@ public class ArticleBuilder {
     }
 
     public Article build() {
-        return new Article(articleData.id(), articleData.title(), articleData.content(), articleData.tags(), articleData.comments());
+        return new Article(articleData.id(), articleData.title(), articleData.content(), articleData.tags(), articleData.trending());
     }
 }

@@ -3,15 +3,22 @@ package org.example;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.controller.ArticleController;
 import org.example.controller.ArticleFreemarkerController;
+import org.example.controller.CommentController;
 import org.example.entity.Article;
-import org.example.repository.ArticleRepository;
-import org.example.repository.InMemoryArticleRepository;
+import org.example.repository.*;
 import org.example.service.ArticleService;
+import org.example.service.CommentService;
 import org.example.template.TemplateFactory;
 import org.example.testresponse.ArticleBuilder;
+import org.flywaydb.core.Flyway;
+import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import spark.Service;
 
 import java.io.IOException;
@@ -27,9 +34,27 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Testcontainers
 public class ApplicationTest {
 
+    @Container
+    public static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:13");
+
+    private static Jdbi jdbi;
+
     private Service service;
+
+    @BeforeAll
+    static void beforeAll() {
+        String postgresJdbcUrl = POSTGRES.getJdbcUrl();
+        Flyway flyway = Flyway.configure()
+                .outOfOrder(true)
+                .locations("classpath:db/migrations")
+                .dataSource(postgresJdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .load();
+        flyway.migrate();
+        jdbi = Jdbi.create(postgresJdbcUrl, POSTGRES.getUsername(), POSTGRES.getPassword());
+    }
 
     @BeforeEach
     void beforeEach() {
@@ -44,10 +69,14 @@ public class ApplicationTest {
 
     @Test
     void endToEndApplicationTest() throws IOException, InterruptedException {
-        ArticleRepository articleRepository = new InMemoryArticleRepository();
+        ArticleRepository articleRepository = new PostgresArticleRepository(jdbi);
         ArticleService articleService = new ArticleService(articleRepository);
+        CommentRepository commentRepository = new PostgresCommentRepository(jdbi);
+        CommentService commentService = new CommentService(commentRepository);
         ObjectMapper objectMapper = new ObjectMapper();
-        Application application = new Application(List.of(new ArticleController(service, articleService, objectMapper)));
+        Application application = new Application(List.of(
+                new ArticleController(service, articleService, objectMapper),
+                new CommentController(service, commentService, objectMapper)));
         application.start();
         service.awaitInitialization();
         HttpResponse<String> response;
@@ -68,11 +97,11 @@ public class ApplicationTest {
         //Add comment
         response = HttpClient.newHttpClient()
                 .send(HttpRequest.newBuilder()
-                        .method("PATCH", BodyPublishers.ofString(
+                        .method("POST", BodyPublishers.ofString(
                                 """
                                         {"text":"comment text"}"""
                         ))
-                        .uri(URI.create("http://localhost:%d/api/articles/add-comment/1".formatted(service.port())))
+                        .uri(URI.create("http://localhost:%d/api/comments/add-comment/1".formatted(service.port())))
                         .build(), HttpResponse.BodyHandlers.ofString(UTF_8)
                 );
 
@@ -99,7 +128,7 @@ public class ApplicationTest {
                                 """
                                         {"commentId":{"value":1}}"""
                         ))
-                        .uri(URI.create("http://localhost:%d/api/articles/delete-comment/1".formatted(service.port())))
+                        .uri(URI.create("http://localhost:%d/api/comments/delete-comment".formatted(service.port())))
                         .build(), HttpResponse.BodyHandlers.ofString(UTF_8)
                 );
 
@@ -126,7 +155,6 @@ public class ApplicationTest {
         assertEquals(201, response.statusCode());
         System.out.println(response.body());
         Article article = objectMapper.readValue(response.body(), ArticleBuilder.class).build();
-        assertEquals(0, article.getComments().size());
         assertEquals("updated article content", article.getContent());
 
         //Delete article
@@ -142,10 +170,15 @@ public class ApplicationTest {
 
     @Test
     void endToEndTemplateTest() throws IOException, InterruptedException {
-        ArticleRepository articleRepository = new InMemoryArticleRepository();
+        ArticleRepository articleRepository = new PostgresArticleRepository(jdbi);
         ArticleService articleService = new ArticleService(articleRepository);
+        CommentRepository commentRepository = new PostgresCommentRepository(jdbi);
+        CommentService commentService = new CommentService(commentRepository);
         ObjectMapper objectMapper = new ObjectMapper();
-        Application application = new Application(List.of(new ArticleController(service, articleService, objectMapper), new ArticleFreemarkerController(service, articleService, TemplateFactory.freeMarkerEngine())));
+        Application application = new Application(List.of(
+                new ArticleController(service, articleService, objectMapper),
+                new CommentController(service, commentService, objectMapper),
+                new ArticleFreemarkerController(service, articleService, TemplateFactory.freeMarkerEngine())));
         application.start();
         service.awaitInitialization();
 
@@ -167,7 +200,7 @@ public class ApplicationTest {
                                 """
                                         {"text":"comment text"}"""
                         ))
-                        .uri(URI.create("http://localhost:%d/api/articles/add-comment/1".formatted(service.port())))
+                        .uri(URI.create("http://localhost:%d/api/comments/add-comment".formatted(service.port())))
                         .build(), HttpResponse.BodyHandlers.ofString(UTF_8)
                 );
 
@@ -183,7 +216,6 @@ public class ApplicationTest {
                     </tr>
                             <tr>
                             <td>Title</td>
-                            <td>1</td>
                         </tr>\
                 """));
     }

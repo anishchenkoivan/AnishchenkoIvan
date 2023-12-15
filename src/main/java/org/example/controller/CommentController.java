@@ -33,10 +33,12 @@ public class CommentController implements Controller {
 
     @Override
     public void initializeEndpoints() {
+        addComment();
+        deleteComment();
     }
 
     public void addComment() {
-        service.patch("api/articles/add-comment/:articleId", (Request request, Response response) -> {
+        service.post("api/comments/add-comment/:articleId", (Request request, Response response) -> {
             response.type("application/json");
             String body = request.body();
             ArticleId articleId = new ArticleId(Long.parseLong(request.params("articleId")));
@@ -55,7 +57,7 @@ public class CommentController implements Controller {
     }
 
         public void deleteComment() {
-        service.delete("/api/articles/delete-comment/", (Request request, Response response) -> {
+        service.delete("/api/comments/delete-comment", (Request request, Response response) -> {
             response.type("application/json");
             String body = request.body();
             CommentDeleteRequest commentDeleteRequest = objectMapper.readValue(body, CommentDeleteRequest.class);
