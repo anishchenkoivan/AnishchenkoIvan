@@ -6,6 +6,7 @@ import org.example.repository.exceptions.ItemNotFoundException;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +116,22 @@ public class PostgresArticleRepository implements ArticleRepository{
 
     @Override
     public List<Article> getAll() {
-        return null;
+        try {
+            return jdbi.inTransaction((Handle handle) -> handle.createQuery(
+                    "SELECT article_id, title, content, tags, trending FROM articles")
+                    .mapToMap()
+                    .list()
+                    .stream()
+                    .map((Map<String, Object> result) -> new Article(
+                            new ArticleId((long) result.get("article_id")),
+                            (String) result.get("title"),
+                            (String) result.get("content"),
+                            Arrays.stream((String[]) result.get("tags"))
+                                    .collect(Collectors.toSet()),
+                            (boolean) result.get("trending"))))
+                    .collect(Collectors.toList());
+        } catch (NullPointerException e) {
+            return new ArrayList<>();
+        }
     }
 }
